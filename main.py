@@ -1,4 +1,6 @@
+import email
 import tkinter
+import json
 from turtle import title
 import random
 
@@ -31,24 +33,58 @@ def generate_password():
 
 
 def save():
-    entry_website.get()
     website = entry_website.get()
     username = entry_username.get()
     password = entry_password.get()
+    new_data = {
+        website: {
+            "username": username,
+            "password": password,
+        }
+    }
 
-    if len(website) == 0 or len(username) == 0 or len(password):
+    if len(website) == 0 or len(username) == 0 or len(password) == 0:
         tkinter.messagebox.askokcancel(
             title="Error", message=f"Please fill all the entries")
     else:
+
         is_ok = tkinter.messagebox.askokcancel(
             title=website, message=f"Username: {username} Password: {password}")
         if is_ok:
-            file_object = open('secrets.txt', 'a+')
-            file_object.write(
-                f"{website} | {username} | {password} \n")
-            file_object.close()
-            entry_website.delete(0, tkinter.END)
-            entry_password.delete(0, tkinter.END)
+            try:
+                with open("data.json", "r") as data_file:
+                    # Reading old data
+                    data = json.load(data_file)
+            except FileNotFoundError:
+                with open("data.json", "w") as data_file:
+                    json.dump(new_data, data_file, indent=4)
+            else:
+                # Updating old data with new data
+                data.update(new_data)
+
+                with open("data.json", "w") as data_file:
+                    # Saving updated data
+                    json.dump(data, data_file, indent=4)
+            finally:
+                entry_website.delete(0,  tkinter.END)
+                entry_password.delete(0, tkinter.END)
+
+
+# ---------------------------- FIND PASSWORD ------------------------------- #
+def find_password():
+    website = entry_website.get()
+    try:
+        with open("data.json") as data_file:
+            data = json.load(data_file)
+    except FileNotFoundError:
+        tkinter.messagebox.showinfo(title="Error", message="No Data File Found.")
+    else:
+        if website in data:
+            username = data[website]["username"]
+            password = data[website]["password"]
+            tkinter.messagebox.showinfo(title=website, message=f"username: {username}\nPassword: {password}")
+        else:
+            tkinter.messagebox.showinfo(title="Error", message=f"No details for {website} exists.")
 
 # ---------------------------- UI SETUP ------------------------------- #
 
@@ -88,6 +124,9 @@ button_generate_password.grid(column=2, row=3)
 
 button_add_password = tkinter.Button(text="Add", width=41, command=save)
 button_add_password.grid(column=1, row=4, columnspan=2)
+
+search_button = tkinter.Button(text="Search", width=13, command=find_password)
+search_button.grid(row=1, column=2)
 
 
 window.mainloop()
